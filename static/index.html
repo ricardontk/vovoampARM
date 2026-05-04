@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="VovôAmp"/>
+<title>VovôAmp</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;1,9..144,200&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0f0d; --surface: #111a15; --border: #1e2e24;
+    --accent: #3ddc84; --warn: #ffb300; --danger: #ff5252;
+    --text: #e8f5e9; --muted: #4a6855; --radius: 20px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; }
+  .app { max-width: 440px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 14px; }
+  header { text-align: center; padding: 8px 0 0; }
+  header h1 { font-family: 'Fraunces', serif; font-size: clamp(2rem,8vw,2.6rem); font-weight: 300; color: var(--accent); line-height: 1; }
+  header p  { font-size: 0.65rem; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; margin-top: 4px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .card-title { font-size: 0.56rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+
+  /* VU */
+  .vu-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .vu-bars { display: flex; gap: 3px; align-items: flex-end; height: 48px; }
+  .vu-bar  { width: 9px; border-radius: 3px 3px 0 0; background: var(--border); height: 8px; transition: height .05s ease; }
+  .status-row { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: all .3s; }
+  .dot.active { background: var(--accent); animation: pulse 1.8s ease-in-out infinite; }
+  .dot.gated  { background: var(--warn); animation: none; }
+  .dot.error  { background: var(--danger); animation: none; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(61,220,132,.2)}50%{box-shadow:0 0 0 8px rgba(61,220,132,.07)} }
+  #statusText { font-size: 0.82rem; }
+  #deviceInfo { font-size: 0.68rem; color: var(--accent); min-height: 15px; }
+
+  /* CONTROLES */
+  .ctrl-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .ctrl-label { font-size: 0.6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .ctrl-val { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 300; font-style: italic; color: var(--accent); line-height: 1; }
+  .ctrl-val small { font-size: .75rem; color: var(--muted); font-style: normal; font-family: 'DM Mono', monospace; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px; background: var(--border); outline: none; cursor: pointer; margin-bottom: 5px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 6px rgba(61,220,132,.5); }
+  .range-ends { display: flex; justify-content: space-between; font-size: .56rem; color: var(--muted); }
+
+  /* SWITCHES */
+  .switch-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .switch-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .switch-info { display: flex; flex-direction: column; gap: 2px; }
+  .switch-name { font-size: .8rem; color: var(--text); }
+  .switch-desc { font-size: .6rem; color: var(--muted); }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider-sw { position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: background .3s; }
+  .slider-sw::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%; background: var(--muted); transition: transform .3s, background .3s; }
+  input:checked + .slider-sw { background: rgba(61,220,132,.2); border: 1px solid var(--accent); }
+  input:checked + .slider-sw::before { transform: translateX(20px); background: var(--accent); }
+
+  .sub-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* SELECT */
+  select { width: 100%; background: #0a160f; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: .72rem; padding: 8px 10px; margin-top: 4px; outline: none; }
+
+  /* BOTÃO PRINCIPAL */
+  .btn-main { width: 100%; padding: 17px; border: none; border-radius: var(--radius); font-family: 'DM Mono', monospace; font-size: 1.05rem; font-weight: 500; letter-spacing: .06em; cursor: pointer; color: #021007; transition: transform .15s, background .3s; -webkit-tap-highlight-color: transparent; }
+  .btn-main:active { transform: scale(.97); }
+  .btn-main.off { background: var(--accent); box-shadow: 0 4px 20px rgba(61,220,132,.3); }
+  .btn-main.on  { background: var(--danger); box-shadow: 0 4px 20px rgba(255,82,82,.3); }
+
+  /* LOG */
+  .log-box { background: #060d09; border: 1px solid var(--border); border-radius: 12px; padding: 10px 13px; font-size: .66rem; color: #4a8c5c; line-height: 1.9; max-height: 110px; overflow-y: auto; }
+  .log-box .err  { color: var(--danger); }
+  .log-box .ok   { color: var(--accent); }
+  .log-box .info { color: var(--warn); }
+
+  .warn-note { font-size: .66rem; color: var(--warn); margin-top: 6px; display: none; }
+  footer { text-align: center; font-size: .58rem; color: var(--muted); padding-top: 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>👂 VovôAmp</h1>
+    <p>Raspberry Pi Zero 2 W</p>
+  </header>
+
+  <!-- VU -->
+  <div class="card">
+    <div class="vu-wrap">
+      <div class="vu-bars" id="vuBars"></div>
+      <div class="status-row">
+        <div class="dot" id="dot"></div>
+        <span id="statusText">Conectando...</span>
+      </div>
+      <div id="deviceInfo"></div>
+    </div>
+  </div>
+
+  <!-- Ganho -->
+  <div class="card">
+    <div class="ctrl-row">
+      <div class="ctrl-label">Amplificação</div>
+      <div class="ctrl-val" id="gainVal">3.0<small>×</small></div>
+    </div>
+    <input type="range" id="gainSlider" min="10" max="100" value="30" step="5" oninput="onGain()"/>
+    <div class="range-ends"><span>1×</span><span>5×</span><span>10×</span></div>
+    <div class="warn-note" id="warnGain">⚠ Acima de 5× pode distorcer</div>
+  </div>
+
+  <!-- Redução de ruído -->
+  <div class="card">
+    <div class="card-title">Redução de Ruído</div>
+
+    <div class="switch-row">
+      <div class="switch-info">
+        <span class="switch-name">Corte de graves</span>
+        <span class="switch-desc">Remove ventilador, AC, ambiente</span>
+      </div>
+      <label class="toggle"><input type="checkbox" id="toggleHP" checked onchange="sendSetting('hp_enabled', this.checked)"/><span class="slider-sw"></span></label>
+    </div>
+
+    <div class="sub-section">
+      <div class="ctrl-row" style="margin-bottom:7px;">
+        <div class="ctrl-label">Frequência de corte</div>
+        <div class="ctrl-val" style="font-size:1.25rem" id="hpVal">120<small>Hz</small></div>
+      </div>
+      <input type="range" id="hpSlider" min="60" max="300" value="120" step="10" oninput="onHP()"/>
+      <div class="range-ends"><span>60Hz</span><span>300Hz</span></div>
+    </div>
+
+    <div class="switch-row" style="margin-top:10px;">
+      <div class="switch-info">
+        <span class="switch-name">Compressor</span>
+        <span class="switch-desc">Volume constante, reduz picos</span>
+      </div>
+      <label class="toggle"><input type="checkbox" id="toggleComp" checked onchange="sendSetting('comp_enabled', this.checked)"/><span class="slider-sw"></span></label>
+    </div>
+
+    <div class="switch-row">
+      <div class="switch-info">
+        <span class="switch-name">Gate de silêncio</span>
+        <span class="switch-desc">Muda quando ninguém fala</span>
+      </div>
+      <label class="toggle"><input type="checkbox" id="toggleGate" onchange="onGateToggle(this.checked)"/><span class="slider-sw"></span></label>
+    </div>
+
+    <div class="sub-section" id="gateSection" style="display:none;">
+      <div class="ctrl-row" style="margin-bottom:7px;">
+        <div class="ctrl-label">Sensibilidade</div>
+        <div class="ctrl-val" style="font-size:1.25rem" id="gateVal">-40<small>dB</small></div>
+      </div>
+      <input type="range" id="gateSlider" min="-70" max="-10" value="-40" step="5" oninput="onGate()"/>
+      <div class="range-ends"><span>−70dB (fácil)</span><span>−10dB (só voz alta)</span></div>
+    </div>
+  </div>
+
+  <!-- Dispositivos -->
+  <div class="card">
+    <div class="card-title">Dispositivos de Áudio</div>
+    <div style="font-size:.68rem;color:var(--muted);margin-bottom:6px;">Entrada (microfone USB)</div>
+    <select id="selInput" onchange="sendSetting('input_device', parseInt(this.value))"></select>
+    <div style="font-size:.68rem;color:var(--muted);margin:10px 0 6px;">Saída (fone Bluetooth)</div>
+    <select id="selOutput" onchange="sendSetting('output_device', parseInt(this.value))"></select>
+    <button onclick="doRestart()" style="margin-top:12px;width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:'DM Mono',monospace;font-size:.75rem;cursor:pointer;">
+      🔄 Aplicar dispositivos
+    </button>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">Diagnóstico</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+  <button class="btn-main off" id="btnToggle" onclick="toggleAudio()">▶&nbsp; Iniciar</button>
+
+  <footer>VovôAmp · http://vovoamp.local</footer>
+</div>
+
+<script>
+// ── VU BARS ───────────────────────────────────────────────
+var NUM_BARS = 20;
+var vuContainer = document.getElementById('vuBars');
+var bars = [];
+for (var i = 0; i < NUM_BARS; i++) {
+  var b = document.createElement('div');
+  b.className = 'vu-bar';
+  vuContainer.appendChild(b);
+  bars.push(b);
+}
+function updateVU(level) {
+  var active = Math.round(Math.min(level, 1) * NUM_BARS);
+  bars.forEach(function(b, i) {
+    if (i < active) {
+      b.style.height = (8 + (i / NUM_BARS) * 40) + 'px';
+      b.style.background = i/NUM_BARS < 0.6 ? '#3ddc84' : i/NUM_BARS < 0.85 ? '#ffb300' : '#ff5252';
+    } else {
+      b.style.height = '8px';
+      b.style.background = 'var(--border)';
+    }
+  });
+}
+
+// ── LOG ───────────────────────────────────────────────────
+var logBox = document.getElementById('logBox');
+function log(msg, type) {
+  var d = document.createElement('div');
+  if (type) d.className = type;
+  d.textContent = '› ' + msg;
+  logBox.appendChild(d);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+// ── WEBSOCKET (VU meter em tempo real) ────────────────────
+var ws = null;
+function connectWS() {
+  var url = 'ws://' + location.host + '/ws';
+  ws = new WebSocket(url);
+  ws.onmessage = function(e) {
+    var msg = JSON.parse(e.data);
+    if (msg.level !== undefined) updateVU(msg.level);
+  };
+  ws.onclose = function() {
+    setTimeout(connectWS, 2000);
+  };
+  ws.onerror = function() { ws.close(); };
+}
+
+// ── API ───────────────────────────────────────────────────
+function api(path, method, body) {
+  return fetch(path, {
+    method: method || 'GET',
+    headers: body ? {'Content-Type': 'application/json'} : {},
+    body: body ? JSON.stringify(body) : undefined,
+  }).then(function(r) { return r.json(); });
+}
+
+function sendSetting(key, value) {
+  var body = {};
+  body[key] = value;
+  api('/set', 'POST', body).catch(function(e) { log('Erro: ' + e, 'err'); });
+}
+
+// ── CONTROLES ─────────────────────────────────────────────
+var gainTimer = null;
+function onGain() {
+  var g = document.getElementById('gainSlider').value / 10;
+  document.getElementById('gainVal').innerHTML = g.toFixed(1) + '<small>×</small>';
+  document.getElementById('warnGain').style.display = g > 5 ? 'block' : 'none';
+  clearTimeout(gainTimer);
+  gainTimer = setTimeout(function() { sendSetting('gain', g); }, 150);
+}
+
+var hpTimer = null;
+function onHP() {
+  var v = parseInt(document.getElementById('hpSlider').value);
+  document.getElementById('hpVal').innerHTML = v + '<small>Hz</small>';
+  clearTimeout(hpTimer);
+  hpTimer = setTimeout(function() { sendSetting('hp_freq', v); }, 200);
+}
+
+function onGateToggle(checked) {
+  document.getElementById('gateSection').style.display = checked ? 'block' : 'none';
+  sendSetting('gate_enabled', checked);
+}
+
+var gateTimer = null;
+function onGate() {
+  var v = parseInt(document.getElementById('gateSlider').value);
+  document.getElementById('gateVal').innerHTML = v + '<small>dB</small>';
+  clearTimeout(gateTimer);
+  gateTimer = setTimeout(function() { sendSetting('gate_thresh', v); }, 200);
+}
+
+// ── TOGGLE START/STOP ─────────────────────────────────────
+var running = false;
+function toggleAudio() {
+  if (!running) {
+    log('Iniciando áudio...', 'info');
+    api('/start', 'POST').then(function(r) {
+      if (r.ok) {
+        running = true;
+        updateBtn(true);
+        log('Amplificando ✓', 'ok');
+      } else {
+        log('Erro: ' + r.msg, 'err');
+      }
+    }).catch(function(e) { log('Falha: ' + e, 'err'); });
+  } else {
+    api('/stop', 'POST').then(function() {
+      running = false;
+      updateBtn(false);
+      updateVU(0);
+      log('Parado.', 'info');
+    });
+  }
+}
+
+function doRestart() {
+  log('Reiniciando stream...', 'info');
+  api('/restart', 'POST').then(function(r) {
+    log(r.ok ? 'Stream reiniciado ✓' : 'Erro: ' + r.msg, r.ok ? 'ok' : 'err');
+  });
+}
+
+function updateBtn(on) {
+  var btn = document.getElementById('btnToggle');
+  btn.textContent = on ? '⏹  Parar' : '▶\u00A0 Iniciar';
+  btn.className = 'btn-main ' + (on ? 'on' : 'off');
+  var dot = document.getElementById('dot');
+  dot.className = 'dot' + (on ? ' active' : '');
+  document.getElementById('statusText').textContent = on ? 'Amplificando...' : 'Parado';
+}
+
+// ── STATUS INICIAL ────────────────────────────────────────
+function populateDevices(devs) {
+  var selIn  = document.getElementById('selInput');
+  var selOut = document.getElementById('selOutput');
+  selIn.innerHTML = '';
+  selOut.innerHTML = '';
+  devs.forEach(function(d) {
+    if (d.inputs > 0) {
+      var o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = d.name.substring(0, 40);
+      if (d.name.toLowerCase().includes('usb')) o.selected = true;
+      selIn.appendChild(o);
+    }
+    if (d.outputs > 0) {
+      var o = document.createElement('option');
+      o.value = d.id;
+      o.textContent = d.name.substring(0, 40);
+      if (d.name.toLowerCase().includes('blue') || d.name.toLowerCase().includes('bt')) o.selected = true;
+      selOut.appendChild(o);
+    }
+  });
+}
+
+api('/status').then(function(s) {
+  running = s.running;
+  updateBtn(s.running);
+  if (s.running) log('Já estava rodando ✓', 'ok');
+
+  document.getElementById('gainSlider').value = Math.round(s.gain * 10);
+  document.getElementById('gainVal').innerHTML = s.gain.toFixed(1) + '<small>×</small>';
+  document.getElementById('toggleHP').checked   = s.hp_enabled;
+  document.getElementById('hpSlider').value     = s.hp_freq;
+  document.getElementById('hpVal').innerHTML    = s.hp_freq + '<small>Hz</small>';
+  document.getElementById('toggleComp').checked = s.comp_enabled;
+  document.getElementById('toggleGate').checked = s.gate_enabled;
+  document.getElementById('gateSection').style.display = s.gate_enabled ? 'block' : 'none';
+  document.getElementById('gateSlider').value   = s.gate_thresh;
+  document.getElementById('gateVal').innerHTML  = s.gate_thresh + '<small>dB</small>';
+
+  populateDevices(s.devices);
+  log('Pi conectado ✓ — ' + location.host, 'ok');
+
+  connectWS();
+}).catch(function() {
+  log('Não foi possível conectar ao Pi.', 'err');
+  log('Verifique se está na mesma rede WiFi.', 'info');
+  document.getElementById('dot').className = 'dot error';
+  document.getElementById('statusText').textContent = 'Sem conexão';
+});
+</script>
+</body>
+</html>
