@@ -364,4 +364,4 @@ if __name__ == "__main__":
     log.info("  VovôAmp v2.0 — Pi Zero 2 W")
     log.info("=" * 50)
     app = create_app()
-    web.run_app(app, host="0.0.0.0", port=80)
+    web.run_app(app, host="0.0.0.0", port=8080)

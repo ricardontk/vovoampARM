@@ -17,6 +17,7 @@ hdr()  { echo -e "\n${CYAN}[$1]${NC}"; }
 
 REPO="https://raw.githubusercontent.com/ricardontk/vovoampARM/main"
 DEST="/opt/vovoamp"
+PORT=8080   # Porta 80 é usada pelo RaspAP (lighttpd)
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
@@ -216,10 +217,12 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║  ✓ Instalação concluída!                     ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
-echo "  Abra no celular (mesma rede WiFi):"
+echo "  Abra no celular (conectado ao hotspot WiFi do Orange Pi):"
 echo ""
-echo -e "  ${GREEN}▶  http://vovoamp.local${NC}"
-echo -e "  ${GREEN}▶  http://$IP${NC}  (use este se .local não funcionar)"
+echo -e "  ${GREEN}▶  http://10.3.141.1:8080${NC}   ← IP do hotspot RaspAP"
+echo -e "  ${GREEN}▶  http://$IP:8080${NC}   ← IP na rede local (se conectado via eth0)"
+echo ""
+echo -e "  ${YELLOW}⚠  Use a porta 8080 — a porta 80 é do RaspAP (lighttpd)${NC}"
 echo ""
 echo "  Comandos úteis:"
 echo -e "  ${CYAN}sudo systemctl status vovoamp${NC}     # ver status"
